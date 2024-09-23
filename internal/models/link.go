@@ -4,6 +4,7 @@ import "time"
 
 type Link struct {
 	ID        int
+	User      User
 	Short     string
 	Long      string
 	Active    bool
