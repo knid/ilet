@@ -1,0 +1,16 @@
+FROM golang:1.23.1-alpine3.20
+
+RUN apk add --no-cache make
+
+WORKDIR /app
+
+RUN go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@v4.17.0
+RUN go install github.com/air-verse/air@v1.60.0
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+ENTRYPOINT [ "sh", "/app/scripts/wait-and-migrate.sh" ]
+CMD ["air", "-c", ".air.toml"]
+
+
