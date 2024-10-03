@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS links (
-    id INT PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     user_id INT NOT NULL,
     short varchar(16) UNIQUE NOT NULL,
     long_url varchar(256) NOT NULL,
