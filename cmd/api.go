@@ -8,6 +8,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/knid/ilet/internal/database"
+	handlers "github.com/knid/ilet/internal/handlers/http"
 )
 
 func main() {
@@ -16,36 +18,74 @@ func main() {
 		log.Println("ERROR(env): ILET_API_LISTEN_ADDRESS not defined. Using default: 0.0.0.0")
 		listenAddr = "0.0.0.0"
 	}
-	listenPort, ok := os.LookupEnv("ILET_API_LISTEN_PORT")
+	apiListenPort, ok := os.LookupEnv("ILET_API_LISTEN_PORT")
 	if !ok {
 		log.Println("ERROR(env): ILET_API_LISTEN_PORT not defined. Using default: 8080")
-		listenPort = "8080"
+		apiListenPort = "8080"
+	}
+	routerListenPort, ok := os.LookupEnv("ILET_ROUTER_LISTEN_PORT")
+	if !ok {
+		log.Println("ERROR(env): ILET_ROUTER_LISTEN_PORT not defined. Using default: 8081")
+		routerListenPort = "8081"
 	}
 
-	r := chi.NewRouter()
+	db := database.PostgresDB{
+		Username: os.Getenv("POSTGRES_USER"),
+		Password: os.Getenv("POSTGRES_PASSWORD"),
+		DBName:   os.Getenv("POSTGRES_DB"),
+		Address:  os.Getenv("POSTGRES_HOST") + ":" + os.Getenv("POSTGRES_PORT"),
+		SSLMode:  os.Getenv("POSTGRES_SSL"),
+	}
 
-	r.Use(middleware.Logger)
-	r.Use(middleware.Recoverer)
-	r.Use(middleware.Timeout(30 * time.Second))
+	if err := db.Connect(); err != nil {
+		log.Fatal("ERROR(DB): Connecting Error: ", err)
+	}
 
-	r.Get("/{shortLink}", func(w http.ResponseWriter, r *http.Request) {})
-	r.Route("/links", func(r chi.Router) {
-		r.Get("/", func(w http.ResponseWriter, r *http.Request) {})        // Get all links
-		r.Get("/{id}", func(w http.ResponseWriter, r *http.Request) {})    // Get a link
-		r.Put("/{id}", func(w http.ResponseWriter, r *http.Request) {})    // Edit a link
-		r.Delete("/{id}", func(w http.ResponseWriter, r *http.Request) {}) // Delete a link
-		r.Post("/", func(w http.ResponseWriter, r *http.Request) {})       // Create a link
+	// if err := db.CheckConnection(); err != nil {
+	// 	log.Fatalf("ERROR(DB): %+v", err)
+	// }
+
+	httpHandler := handlers.HTTPHandler{
+		DB: &db,
+	}
+
+	apiR := chi.NewRouter()
+	routerR := chi.NewRouter()
+
+	apiR.Use(middleware.Logger)
+	apiR.Use(middleware.Recoverer)
+	apiR.Use(middleware.Timeout(30 * time.Second))
+
+	routerR.Use(middleware.Logger)
+	routerR.Use(middleware.Recoverer)
+	routerR.Use(middleware.Timeout(30 * time.Second))
+
+	apiR.Route("/links", func(r chi.Router) {
+		r.Get("/", httpHandler.GetAllLinks)       // Get all links
+		r.Get("/{id}", httpHandler.GetLink)       // Get a link
+		r.Put("/{id}", httpHandler.UpdateLink)    // Edit a link
+		r.Delete("/{id}", httpHandler.DeleteLink) // Delete a link
+		r.Post("/", httpHandler.CreateLink)       // Create a link
 	})
-	r.Route("/user", func(r chi.Router) {
-		r.Get("/", func(w http.ResponseWriter, r *http.Request) {})          // Get user detail
-		r.Put("/", func(w http.ResponseWriter, r *http.Request) {})          // Edit user
-		r.Delete("/", func(w http.ResponseWriter, r *http.Request) {})       // Delete user
-		r.Post("/register", func(w http.ResponseWriter, r *http.Request) {}) // Register a user
-		r.Post("/login", func(w http.ResponseWriter, r *http.Request) {})    // Login user
+	apiR.Route("/user", func(r chi.Router) {
+		r.Get("/me", httpHandler.GetUser)             // Get user detail
+		r.Put("/me", httpHandler.UpdateUser)          // Edit user
+		r.Delete("/me", httpHandler.DeleteUser)       // Delete user
+		r.Post("/register", httpHandler.RegisterUser) // Register a user
+		r.Post("/login", httpHandler.LoginUser)       // Login user
 	})
 
-	addr := listenAddr + ":" + listenPort
+	routerR.Get("/{shortLink}", httpHandler.RouteToLongURL)
 
-	log.Println("HTTP listener starting on " + addr)
-	log.Fatal(http.ListenAndServe(addr, r))
+	apiAddr := listenAddr + ":" + apiListenPort
+	routerAddr := listenAddr + ":" + routerListenPort
+
+	go func() {
+		log.Println("Router HTTP listener starting on " + routerAddr)
+		log.Fatal(http.ListenAndServe(routerAddr, routerR))
+	}()
+
+	log.Println("API HTTP listener starting on " + apiAddr)
+	log.Fatal(http.ListenAndServe(apiAddr, apiR))
+
 }
