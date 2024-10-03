@@ -6,6 +6,7 @@ services:
         - .env.dev
     ports:
       - "${ILET_API_LISTEN_PORT}:${ILET_API_LISTEN_PORT}"
+      - "${ILET_ROUTER_LISTEN_PORT}:${ILET_ROUTER_LISTEN_PORT}"
     volumes:
       - ./:/app  
     restart: always
