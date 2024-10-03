@@ -7,11 +7,11 @@ import (
 )
 
 type Token struct {
-	ID        int
-	Token     string
-	User      User
-	CreatedAt time.Time
-	UpdatedAt *sql.NullTime
+	ID        int           `json:"-"`
+	Token     string        `json:"token"`
+	User      User          `json:"-"`
+	CreatedAt time.Time     `json:"created_at"`
+	UpdatedAt *sql.NullTime `json:"updated_at"`
 }
 
 func (t Token) Validete() error {

@@ -6,9 +6,9 @@ import (
 )
 
 type User struct {
-	ID        int
-	Username  string
-	Password  string
-	CreatedAt time.Time
-	UpdatedAt *sql.NullTime
+	ID        int           `json:"-"`
+	Username  string        `json:"username"`
+	Password  string        `json:"-"`
+	CreatedAt time.Time     `json:"created_at"`
+	UpdatedAt *sql.NullTime `json:"updated_at"`
 }

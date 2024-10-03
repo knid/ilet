@@ -6,12 +6,12 @@ import (
 )
 
 type Link struct {
-	ID        int
-	User      User
-	Short     string
-	Long      string
-	Active    bool
-	Visited   int
-	CreatedAt time.Time
-	UpdatedAt *sql.NullTime
+	ID        int           `json:"id"`
+	User      User          `json:"-"`
+	Short     string        `json:"short"`
+	Long      string        `json:"long"`
+	Active    bool          `json:"active"`
+	Visited   int           `json:"visited"`
+	CreatedAt time.Time     `json:"created_at"`
+	UpdatedAt *sql.NullTime `json:"updated_at"`
 }
