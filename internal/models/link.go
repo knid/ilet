@@ -1,6 +1,9 @@
 package models
 
-import "time"
+import (
+	"database/sql"
+	"time"
+)
 
 type Link struct {
 	ID        int
@@ -10,5 +13,5 @@ type Link struct {
 	Active    bool
 	Visited   int
 	CreatedAt time.Time
-	UpdatedAt time.Time
+	UpdatedAt *sql.NullTime
 }
